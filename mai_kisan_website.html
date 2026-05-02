@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mai Kisan — Farmer Price Intelligence Platform</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Mukta:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --soil: #1a0f00;
+  --earth: #3d2200;
+  --wheat: #e8b84b;
+  --wheat-light: #f5d98a;
+  --green: #1e6b3c;
+  --green-mid: #2d9e5f;
+  --green-light: #b8f0cc;
+  --cream: #fdf8ee;
+  --white: #ffffff;
+  --text: #1a0f00;
+  --text2: #5a4030;
+  --red: #c0392b;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body { font-family: 'Mukta', sans-serif; background: var(--cream); color: var(--text); overflow-x: hidden; }
+
+/* ---- NOISE TEXTURE OVERLAY ---- */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 1000;
+  opacity: 0.4;
+}
+
+/* ---- NAVBAR ---- */
+nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 100;
+  padding: 16px 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(253,248,238,0.92);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(232,184,75,0.3);
+}
+.nav-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+}
+.nav-logo-icon {
+  width: 36px; height: 36px;
+  background: var(--green);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+}
+.nav-logo-text {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.3rem;
+  font-weight: 900;
+  color: var(--soil);
+}
+.nav-logo-text span { color: var(--green); }
+.nav-links { display: flex; gap: 32px; align-items: center; }
+.nav-links a {
+  text-decoration: none;
+  color: var(--text2);
+  font-size: 0.9rem;
+  font-weight: 600;
+  transition: color 0.2s;
+}
+.nav-links a:hover { color: var(--green); }
+.nav-cta {
+  background: var(--green) !important;
+  color: var(--white) !important;
+  padding: 8px 20px;
+  border-radius: 8px;
+  transition: background 0.2s !important;
+}
+.nav-cta:hover { background: var(--green-mid) !important; }
+
+/* ---- HERO ---- */
+.hero {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  padding: 100px 40px 60px;
+  position: relative;
+  overflow: hidden;
+}
+.hero-bg {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, #fdf8ee 0%, #f0f7f3 50%, #e8f5ee 100%);
+  z-index: -2;
+}
+/* Decorative wheat field SVG */
+.hero-field {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 200px;
+  z-index: -1;
+  opacity: 0.15;
+}
+/* Floating orbs */
+.orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(60px);
+  z-index: -1;
+  animation: float 8s ease-in-out infinite;
+}
+.orb1 { width: 400px; height: 400px; background: rgba(46,158,95,0.12); top: -100px; right: -100px; }
+.orb2 { width: 300px; height: 300px; background: rgba(232,184,75,0.15); bottom: 50px; left: -80px; animation-delay: -3s; }
+.orb3 { width: 200px; height: 200px; background: rgba(30,107,60,0.08); top: 40%; right: 30%; animation-delay: -5s; }
+@keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-20px)} }
+
+.hero-content { max-width: 680px; }
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--green-light);
+  color: var(--green);
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  margin-bottom: 24px;
+  animation: slideUp 0.6s ease both;
+}
+.badge-dot { width: 7px; height: 7px; background: var(--green); border-radius: 50%; animation: blink 1.5s infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+@keyframes slideUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:none} }
+
+.hero-title {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(2.8rem, 6vw, 4.5rem);
+  font-weight: 900;
+  line-height: 1.1;
+  color: var(--soil);
+  margin-bottom: 20px;
+  animation: slideUp 0.6s 0.1s ease both;
+}
+.hero-title .highlight {
+  color: var(--green);
+  position: relative;
+  display: inline-block;
+}
+.hero-title .highlight::after {
+  content: '';
+  position: absolute;
+  bottom: 2px; left: 0; right: 0;
+  height: 4px;
+  background: var(--wheat);
+  border-radius: 2px;
+  transform: scaleX(0);
+  animation: underline 0.6s 0.7s ease forwards;
+}
+@keyframes underline { to{transform:scaleX(1)} }
+
+.hero-subtitle {
+  font-size: 1.15rem;
+  color: var(--text2);
+  line-height: 1.65;
+  margin-bottom: 36px;
+  max-width: 540px;
+  animation: slideUp 0.6s 0.2s ease both;
+}
+.hero-stats {
+  display: flex;
+  gap: 32px;
+  margin-bottom: 36px;
+  animation: slideUp 0.6s 0.3s ease both;
+}
+.stat { text-align: left; }
+.stat-num {
+  font-family: 'Space Mono', monospace;
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--green);
+}
+.stat-label { font-size: 0.75rem; color: var(--text2); font-weight: 600; }
+.hero-divider { width: 1px; background: rgba(0,0,0,0.1); align-self: stretch; }
+
+.hero-btns {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  animation: slideUp 0.6s 0.4s ease both;
+}
+.btn-primary {
+  background: var(--green);
+  color: var(--white);
+  padding: 14px 28px;
+  border-radius: 10px;
+  font-family: 'Mukta', sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s;
+  box-shadow: 0 4px 20px rgba(30,107,60,0.25);
+}
+.btn-primary:hover { background: var(--green-mid); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(30,107,60,0.3); }
+.btn-secondary {
+  background: transparent;
+  color: var(--green);
+  padding: 14px 28px;
+  border-radius: 10px;
+  font-family: 'Mukta', sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  border: 2px solid var(--green);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s;
+}
+.btn-secondary:hover { background: var(--green); color: var(--white); transform: translateY(-2px); }
+
+/* Hero right visual */
+.hero-visual {
+  position: absolute;
+  right: 40px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 420px;
+  animation: slideUp 0.8s 0.3s ease both;
+}
+.hero-card {
+  background: var(--white);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+  border: 1px solid rgba(232,184,75,0.2);
+}
+.hero-card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+.hero-card-icon { width: 40px; height: 40px; background: var(--green); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+.hero-card-title { font-weight: 700; font-size: 1rem; }
+.hero-card-sub { font-size: 0.75rem; color: var(--text2); }
+.price-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #f0f0f0; }
+.price-row:last-child { border-bottom: none; }
+.price-label { font-size: 0.85rem; color: var(--text2); }
+.price-val { font-family: 'Space Mono', monospace; font-weight: 700; font-size: 0.95rem; }
+.price-val.green { color: var(--green); }
+.price-val.red { color: var(--red); }
+.price-val.amber { color: var(--wheat); }
+.gap-indicator { background: #fff3e0; border-radius: 8px; padding: 10px 14px; margin-top: 14px; display: flex; justify-content: space-between; align-items: center; }
+.gap-text { font-size: 0.8rem; color: #7a4f00; font-weight: 600; }
+.gap-val { font-family: 'Space Mono', monospace; font-weight: 700; color: var(--red); font-size: 0.9rem; }
+
+/* ---- PROBLEM SECTION ---- */
+.problem-section {
+  padding: 80px 40px;
+  background: var(--soil);
+  position: relative;
+  overflow: hidden;
+}
+.problem-section::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(45deg, transparent, transparent 40px, rgba(255,255,255,0.02) 40px, rgba(255,255,255,0.02) 80px);
+}
+.section-tag {
+  display: inline-block;
+  background: rgba(232,184,75,0.15);
+  color: var(--wheat);
+  padding: 5px 14px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-bottom: 16px;
+}
+.problem-title {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(2rem, 4vw, 3rem);
+  font-weight: 900;
+  color: var(--white);
+  margin-bottom: 16px;
+  max-width: 600px;
+}
+.problem-title span { color: var(--wheat); }
+.problem-desc { color: rgba(255,255,255,0.7); font-size: 1.05rem; max-width: 560px; line-height: 1.7; margin-bottom: 48px; }
+.problem-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; max-width: 900px; }
+.problem-card {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 14px;
+  padding: 24px;
+  transition: background 0.2s;
+}
+.problem-card:hover { background: rgba(255,255,255,0.1); }
+.problem-card-icon { font-size: 2rem; margin-bottom: 12px; }
+.problem-card h3 { color: var(--white); font-size: 1rem; font-weight: 700; margin-bottom: 8px; }
+.problem-card p { color: rgba(255,255,255,0.6); font-size: 0.85rem; line-height: 1.5; }
+
+/* ---- TOOL SECTION ---- */
+.tool-section { padding: 80px 40px; }
+.tool-section-header { text-align: center; margin-bottom: 48px; }
+.section-title-main {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(1.8rem, 3.5vw, 2.8rem);
+  font-weight: 900;
+  color: var(--soil);
+  margin-bottom: 12px;
+}
+.section-title-main span { color: var(--green); }
+.section-desc { color: var(--text2); font-size: 1rem; max-width: 500px; margin: 0 auto; }
+
+.tool-embed-wrap {
+  max-width: 1000px;
+  margin: 0 auto;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.12);
+  border: 1px solid rgba(232,184,75,0.25);
+  background: var(--white);
+}
+.tool-embed-header {
+  background: var(--green);
+  padding: 14px 24px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.tool-embed-dots { display: flex; gap: 6px; }
+.tool-embed-dots span { width: 12px; height: 12px; border-radius: 50%; }
+.dot-r { background: #ff5f57; }
+.dot-y { background: #febc2e; }
+.dot-g { background: #28c840; }
+.tool-embed-title { color: rgba(255,255,255,0.9); font-size: 0.85rem; font-weight: 600; margin-left: 8px; }
+.tool-embed-header a { margin-left: auto; color: rgba(255,255,255,0.8); font-size: 0.78rem; text-decoration: none; background: rgba(255,255,255,0.15); padding: 4px 12px; border-radius: 6px; transition: background 0.15s; }
+.tool-embed-header a:hover { background: rgba(255,255,255,0.25); }
+iframe {
+  width: 100%;
+  height: 700px;
+  border: none;
+  display: block;
+}
+
+/* ---- HOW IT WORKS ---- */
+.how-section {
+  padding: 80px 40px;
+  background: linear-gradient(180deg, #f0f7f3 0%, var(--cream) 100%);
+}
+.steps-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 24px; max-width: 900px; margin: 48px auto 0; }
+.step-card { text-align: center; padding: 28px 20px; }
+.step-num {
+  width: 48px; height: 48px;
+  background: var(--green);
+  color: var(--white);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Space Mono', monospace;
+  font-weight: 700;
+  font-size: 1.1rem;
+  margin: 0 auto 16px;
+  box-shadow: 0 4px 16px rgba(30,107,60,0.25);
+}
+.step-icon { font-size: 1.8rem; margin-bottom: 12px; }
+.step-title { font-weight: 700; font-size: 1rem; color: var(--soil); margin-bottom: 8px; }
+.step-desc { font-size: 0.85rem; color: var(--text2); line-height: 1.5; }
+
+/* ---- IMPACT SECTION ---- */
+.impact-section {
+  padding: 80px 40px;
+  background: var(--wheat);
+  text-align: center;
+}
+.impact-title {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(1.8rem, 3.5vw, 2.8rem);
+  font-weight: 900;
+  color: var(--soil);
+  margin-bottom: 12px;
+}
+.impact-desc { color: var(--earth); font-size: 1.05rem; max-width: 500px; margin: 0 auto 48px; }
+.impact-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 24px; max-width: 800px; margin: 0 auto; }
+.impact-card { background: rgba(255,255,255,0.5); border-radius: 14px; padding: 24px; backdrop-filter: blur(10px); }
+.impact-num { font-family: 'Space Mono', monospace; font-size: 2rem; font-weight: 700; color: var(--green); margin-bottom: 8px; }
+.impact-label { font-size: 0.85rem; font-weight: 600; color: var(--earth); }
+
+/* ---- FOOTER ---- */
+footer {
+  background: var(--soil);
+  padding: 40px;
+  text-align: center;
+}
+.footer-logo {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.5rem;
+  font-weight: 900;
+  color: var(--white);
+  margin-bottom: 12px;
+}
+.footer-logo span { color: var(--wheat); }
+.footer-tagline { color: rgba(255,255,255,0.5); font-size: 0.85rem; margin-bottom: 24px; }
+.footer-links { display: flex; gap: 24px; justify-content: center; margin-bottom: 24px; }
+.footer-links a { color: rgba(255,255,255,0.6); text-decoration: none; font-size: 0.85rem; transition: color 0.15s; }
+.footer-links a:hover { color: var(--wheat); }
+.footer-copy { color: rgba(255,255,255,0.3); font-size: 0.75rem; }
+
+/* ---- RESPONSIVE ---- */
+@media(max-width: 768px) {
+  nav { padding: 14px 20px; }
+  .nav-links { display: none; }
+  .hero { padding: 90px 20px 40px; }
+  .hero-visual { display: none; }
+  .hero-stats { gap: 20px; }
+  .problem-section, .tool-section, .how-section, .impact-section { padding: 60px 20px; }
+  iframe { height: 550px; }
+  footer { padding: 32px 20px; }
+}
+</style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav>
+  <a class="nav-logo" href="#">
+    <div class="nav-logo-icon">🌾</div>
+    <div class="nav-logo-text">Mai <span>Kisan</span></div>
+  </a>
+  <div class="nav-links">
+    <a href="#problem">Problem</a>
+    <a href="#tool">Mandi Mitra</a>
+    <a href="#how">How It Works</a>
+    <a href="#tool" class="nav-cta">Check Prices →</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-bg"></div>
+  <div class="orb orb1"></div>
+  <div class="orb orb2"></div>
+  <div class="orb orb3"></div>
+
+  <div class="hero-content">
+    <div class="hero-badge">
+      <div class="badge-dot"></div>
+      Live Price Intelligence
+    </div>
+    <h1 class="hero-title">
+      Stop Letting<br>
+      <span class="highlight">Middlemen</span><br>
+      Steal Your Profit
+    </h1>
+    <p class="hero-subtitle">
+      Mai Kisan gives Indian farmers real-time mandi prices vs urban retail prices — so you know exactly how much the middleman is taking, and how to sell smarter.
+    </p>
+    <div class="hero-stats">
+      <div class="stat">
+        <div class="stat-num">39%</div>
+        <div class="stat-label">Avg Middleman Cut</div>
+      </div>
+      <div class="hero-divider"></div>
+      <div class="stat">
+        <div class="stat-num">8+</div>
+        <div class="stat-label">Crops Tracked</div>
+      </div>
+      <div class="hero-divider"></div>
+      <div class="stat">
+        <div class="stat-num">20+</div>
+        <div class="stat-label">Mandis Covered</div>
+      </div>
+    </div>
+    <div class="hero-btns">
+      <a href="#tool" class="btn-primary">🔍 Check Today's Prices</a>
+      <a href="#how" class="btn-secondary">How It Works</a>
+    </div>
+  </div>
+
+  <!-- Floating card -->
+  <div class="hero-visual">
+    <div class="hero-card">
+      <div class="hero-card-header">
+        <div class="hero-card-icon">🍅</div>
+        <div>
+          <div class="hero-card-title">Tomato — Today's Price</div>
+          <div class="hero-card-sub">Nashik Mandi vs Delhi Retail</div>
+        </div>
+      </div>
+      <div class="price-row">
+        <span class="price-label">🏪 Mandi (Farmer gets)</span>
+        <span class="price-val green">₹12/kg</span>
+      </div>
+      <div class="price-row">
+        <span class="price-label">🏭 Wholesale</span>
+        <span class="price-val amber">₹28/kg</span>
+      </div>
+      <div class="price-row">
+        <span class="price-label">🏙️ Delhi Retail</span>
+        <span class="price-val red">₹45/kg</span>
+      </div>
+      <div class="gap-indicator">
+        <span class="gap-text">⚠️ Middleman taking</span>
+        <span class="gap-val">73% margin</span>
+      </div>
+    </div>
+  </div>
+
+  <svg class="hero-field" viewBox="0 0 1440 200" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+    <g fill="#1e6b3c">
+      <ellipse cx="50" cy="190" rx="20" ry="35"/><ellipse cx="100" cy="195" rx="16" ry="28"/>
+      <ellipse cx="150" cy="188" rx="18" ry="32"/><ellipse cx="200" cy="193" rx="15" ry="26"/>
+      <ellipse cx="250" cy="190" rx="20" ry="34"/><ellipse cx="300" cy="195" rx="16" ry="28"/>
+      <ellipse cx="350" cy="188" rx="18" ry="32"/><ellipse cx="400" cy="192" rx="17" ry="30"/>
+      <ellipse cx="450" cy="190" rx="20" ry="35"/><ellipse cx="500" cy="194" rx="15" ry="27"/>
+      <ellipse cx="550" cy="189" rx="18" ry="32"/><ellipse cx="600" cy="193" rx="16" ry="29"/>
+      <ellipse cx="650" cy="190" rx="19" ry="34"/><ellipse cx="700" cy="195" rx="15" ry="26"/>
+      <ellipse cx="750" cy="188" rx="18" ry="32"/><ellipse cx="800" cy="192" rx="17" ry="30"/>
+      <ellipse cx="850" cy="191" rx="20" ry="35"/><ellipse cx="900" cy="194" rx="15" ry="27"/>
+      <ellipse cx="950" cy="189" rx="18" ry="32"/><ellipse cx="1000" cy="193" rx="16" ry="29"/>
+      <ellipse cx="1050" cy="190" rx="19" ry="34"/><ellipse cx="1100" cy="195" rx="15" ry="26"/>
+      <ellipse cx="1150" cy="188" rx="18" ry="32"/><ellipse cx="1200" cy="192" rx="17" ry="30"/>
+      <ellipse cx="1250" cy="191" rx="20" ry="35"/><ellipse cx="1300" cy="194" rx="15" ry="27"/>
+      <ellipse cx="1350" cy="189" rx="18" ry="32"/><ellipse cx="1400" cy="193" rx="16" ry="29"/>
+    </g>
+  </svg>
+</section>
+
+<!-- PROBLEM SECTION -->
+<section class="problem-section" id="problem">
+  <div class="section-tag">The Problem</div>
+  <h2 class="problem-title">Indian Farmers Lose <span>₹1 Lakh Crore+</span> to Middlemen Every Year</h2>
+  <p class="problem-desc">When a farmer sells tomatoes at ₹12/kg in mandi, the same tomato reaches Delhi at ₹45/kg. The farmer gets just 27% of the final price. This information gap is the biggest injustice in Indian agriculture.</p>
+  <div class="problem-cards">
+    <div class="problem-card">
+      <div class="problem-card-icon">😔</div>
+      <h3>No Price Transparency</h3>
+      <p>Farmers have no easy way to compare mandi prices with urban retail prices in real time.</p>
+    </div>
+    <div class="problem-card">
+      <div class="problem-card-icon">📉</div>
+      <h3>Forced to Sell Low</h3>
+      <p>Without market intelligence, farmers accept whatever price middlemen offer at the mandi gate.</p>
+    </div>
+    <div class="problem-card">
+      <div class="problem-card-icon">🔗</div>
+      <h3>Long Supply Chain</h3>
+      <p>3-5 intermediaries between farmer and consumer, each taking their cut before the farmer gets paid.</p>
+    </div>
+    <div class="problem-card">
+      <div class="problem-card-icon">💡</div>
+      <h3>Our Solution</h3>
+      <p>Mai Kisan shows the full price chain — from farm to consumer — in one simple dashboard.</p>
+    </div>
+  </div>
+</section>
+
+<!-- TOOL SECTION -->
+<section class="tool-section" id="tool">
+  <div class="tool-section-header">
+    <div class="section-tag" style="background:var(--green-light);color:var(--green)">Mandi Mitra Tool</div>
+    <h2 class="section-title-main">Check <span>Live Prices</span> Right Now</h2>
+    <p class="section-desc">Select any crop to instantly see mandi prices, urban retail prices, and the middleman gap — powered by AI insights in Hinglish.</p>
+  </div>
+  <div class="tool-embed-wrap">
+    <div class="tool-embed-header">
+      <div class="tool-embed-dots">
+        <span class="dot-r"></span>
+        <span class="dot-y"></span>
+        <span class="dot-g"></span>
+      </div>
+      <span class="tool-embed-title">🌾 Mandi Mitra — Price Intelligence Dashboard</span>
+      <a href="https://sanyapattnaik2008.github.io/Mandi-Mitra/mandi_price_tracker%20(3).html" target="_blank">Open Full Screen ↗</a>
+    </div>
+    <iframe src="https://sanyapattnaik2008.github.io/Mandi-Mitra/mandi_price_tracker%20(3).html" title="Mandi Mitra Price Tracker" loading="lazy"></iframe>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="how-section" id="how">
+  <div class="tool-section-header">
+    <div class="section-tag" style="background:var(--green-light);color:var(--green)">Simple to Use</div>
+    <h2 class="section-title-main">How <span>Mai Kisan</span> Works</h2>
+    <p class="section-desc">Three simple steps to get price intelligence that was previously only available to large traders.</p>
+  </div>
+  <div class="steps-grid">
+    <div class="step-card">
+      <div class="step-num">01</div>
+      <div class="step-icon">🌾</div>
+      <div class="step-title">Select Your Crop</div>
+      <div class="step-desc">Choose from wheat, rice, tomato, onion, potato, soybean, cotton, or mustard.</div>
+    </div>
+    <div class="step-card">
+      <div class="step-num">02</div>
+      <div class="step-icon">📊</div>
+      <div class="step-title">See the Price Gap</div>
+      <div class="step-desc">Instantly see mandi price vs urban retail price — and exactly how much middlemen are taking.</div>
+    </div>
+    <div class="step-card">
+      <div class="step-num">03</div>
+      <div class="step-icon">🤖</div>
+      <div class="step-title">Get AI Advice</div>
+      <div class="step-desc">Our AI gives you personalized advice in Hinglish — which mandi to sell at, and how to get a better price.</div>
+    </div>
+    <div class="step-card">
+      <div class="step-num">04</div>
+      <div class="step-icon">💰</div>
+      <div class="step-title">Earn More</div>
+      <div class="step-desc">Armed with price data, negotiate better, choose the right mandi, and keep more of what you grow.</div>
+    </div>
+  </div>
+</section>
+
+<!-- IMPACT SECTION -->
+<section class="impact-section">
+  <h2 class="impact-title">Real Impact for Real Farmers</h2>
+  <p class="impact-desc">When farmers have price intelligence, the entire agricultural economy becomes more fair and efficient.</p>
+  <div class="impact-grid">
+    <div class="impact-card">
+      <div class="impact-num">₹800Cr+</div>
+      <div class="impact-label">Potential farmer savings annually</div>
+    </div>
+    <div class="impact-card">
+      <div class="impact-num">140M+</div>
+      <div class="impact-label">Indian farming households who can benefit</div>
+    </div>
+    <div class="impact-card">
+      <div class="impact-num">39%</div>
+      <div class="impact-label">Average middleman margin exposed</div>
+    </div>
+    <div class="impact-card">
+      <div class="impact-num">8+</div>
+      <div class="impact-label">Major crops tracked daily</div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">Mai <span>Kisan</span></div>
+  <div class="footer-tagline">Kisan ki awaaz. Kisan ka data. Kisan ka haq.</div>
+  <div class="footer-links">
+    <a href="#tool">Mandi Mitra</a>
+    <a href="#problem">The Problem</a>
+    <a href="#how">How It Works</a>
+  </div>
+  <div class="footer-copy">© 2026 Mai Kisan. Built for Indian farmers. 🌾</div>
+</footer>
+
+</body>
+</html>
